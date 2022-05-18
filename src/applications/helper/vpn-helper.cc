@@ -6,7 +6,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/vpn-helper.h"
 #include "ns3/vpn-client.h"
-#include "ns3/vpn-server.h"
+// #include "ns3/vpn-server.h"
 
 namespace ns3 {
     // VPNServerHelper::VPNServerHelper (uint16_t port) {

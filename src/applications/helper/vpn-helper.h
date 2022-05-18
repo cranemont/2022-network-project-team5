@@ -7,7 +7,7 @@
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
 #include "ns3/vpn-client.h"
-#include "ns3/vpn-server.h"
+// #include "ns3/vpn-server.h"
 
 namespace ns3 {
     class Node;
