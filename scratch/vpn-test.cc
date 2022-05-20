@@ -5,6 +5,8 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/udp-client-server-helper.h"
+#include "ns3/packet.h"
+#include "ns3/packet-metadata.h"
 
 //
 // n0 --- n1 --- n2
@@ -23,9 +25,18 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("VPNTest");
 
 int main(int argc, char *argv[]) {
-    LogComponentEnable("VPNTest", LOG_LEVEL_DEBUG);
+    LogComponentEnable("VPNTest", LOG_LEVEL_ALL);
     LogComponentEnable("VPNClientApplication", LOG_LEVEL_DEBUG);
-    LogComponentEnable("PacketSink", LOG_LEVEL_ALL);
+	LogComponentEnable("VpnHeader", LOG_LEVEL_ALL);
+    //LogComponentEnable("PacketSink", LOG_LEVEL_ALL);
+    //LogComponentEnable("Packet", LOG_LEVEL_FUNCTION);
+	//LogComponentEnable("Buffer", LOG_LEVEL_FUNCTION);
+
+	Packet init;
+	init.EnablePrinting();
+	init.EnableChecking();
+
+	PacketMetadata::Enable();
 
     NodeContainer nodes, n0n1, n1n2;
     nodes.Create(3);

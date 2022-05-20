@@ -6,6 +6,8 @@
 #include "ns3/uinteger.h"
 #include "ns3/vpn-helper.h"
 #include "ns3/vpn-client.h"
+#include "ns3/string.h"
+
 // #include "ns3/vpn-server.h"
 
 namespace ns3 {
@@ -45,6 +47,16 @@ namespace ns3 {
         if (serverPort != 0)
             SetAttribute ("ServerPort", UintegerValue (serverPort));
         SetAttribute ("ClientPort", UintegerValue (clientPort));
+    }
+
+	VPNClientHelper::VPNClientHelper (Ipv4Address serverIp, Ipv4Address clientIp, uint16_t serverPort, uint16_t clientPort, std::string cipherKey) { // TEMPORARY for test
+        m_factory.SetTypeId (VPNClient::GetTypeId ());
+        SetAttribute ("ServerAddress", Ipv4AddressValue (serverIp));
+        SetAttribute ("ClientAddress", Ipv4AddressValue (clientIp));
+        if (serverPort != 0)
+            SetAttribute ("ServerPort", UintegerValue (serverPort));
+        SetAttribute ("ClientPort", UintegerValue (clientPort));
+		SetAttribute ("CipherKey", StringValue(cipherKey)); 
     }
 
     VPNClientHelper::VPNClientHelper (Ipv4Address serverIp) {

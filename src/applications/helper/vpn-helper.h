@@ -29,6 +29,7 @@ namespace ns3 {
         VPNClientHelper (Ipv4Address serverIp, uint16_t serverPort);
         VPNClientHelper (Ipv4Address serverIp, uint16_t serverPort, uint16_t clientPort);
         VPNClientHelper (Ipv4Address serverIp, Ipv4Address clientIp, uint16_t serverPort, uint16_t clientPort); // TEMPORARY for test
+		VPNClientHelper (Ipv4Address serverIp, Ipv4Address clientIp, uint16_t serverPort, uint16_t clientPort, std::string cipherKey); // with cipherKey registration
         VPNClientHelper (Ipv4Address serverIp);
 
         void SetAttribute (std::string name, const AttributeValue &value);

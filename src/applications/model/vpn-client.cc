@@ -1,4 +1,6 @@
+#include <string>
 #include "ns3/log.h"
+#include "ns3/string.h"
 #include "ns3/address.h"
 #include "ns3/ipv4.h"
 #include "ns3/ipv4-address.h"
@@ -12,7 +14,9 @@
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
 #include "ns3/application.h"
-#include "vpn-client.h"
+#include "ns3/vpn-client.h"
+#include "ns3/vpn-aes.h" // for using aes cryption
+#include "ns3/vpn-header.h"
 
 namespace ns3 {
     NS_LOG_COMPONENT_DEFINE("VPNClientApplication");
@@ -46,7 +50,13 @@ namespace ns3 {
                         "Server Mask",
                         Ipv4MaskValue("255.255.255.0"),
                         MakeIpv4MaskAccessor (&VPNClient::m_serverMask),
-                        MakeIpv4MaskChecker ());
+                        MakeIpv4MaskChecker ())
+				.AddAttribute ("CipherKey",
+						"Private Cipher Key",
+						StringValue("12345678901234567890123456789012"),
+						MakeStringAccessor ( &VPNClient::m_cipherKey),
+						MakeStringChecker())
+						;
         return tid;
     }
 
@@ -70,9 +80,73 @@ namespace ns3 {
         m_serverAddress = addr;
     }
 
+	void VPNClient::SetCipherKey (std::string cipherKey){
+		NS_LOG_FUNCTION (this << cipherKey);
+		m_cipherKey = cipherKey;
+	}
+
     bool VPNClient::SendPacket (Ptr<Packet> packet, const Address& src, const Address& dst, uint16_t protocolNumber) {
-        NS_LOG_DEBUG ("Send to " << m_serverAddress << ": " << *packet);
-        ///// encrypt *packet
+        NS_LOG_DEBUG ("Send to : " << m_serverAddress << ": " << *packet << "with size " << packet->GetSize());
+		//std::string packetstring = packet->ToString();
+		//NS_LOG_DEBUG ("Packet to String : " << packetstring);
+		VpnHeader crypthdr;
+		std::string plainText = "62531124552322311567ABD150BBFFCC";
+		//std::string cipherKey = "2B7E151628AED2A6ABF7158809CF4F3C";
+		crypthdr.EncryptInput(plainText, m_cipherKey, false);
+		packet->AddHeader(crypthdr);
+		NS_LOG_DEBUG ("Send to : encrypted -> " << crypthdr.GetEncrypted());
+		NS_LOG_DEBUG ("Send to : originwas -> " << crypthdr.GetSentOrigin());
+		
+		//Ptr<Packet> encrypted_packet = packet->Copy();
+		//packet->AddAtEnd(encrypted_packet);
+		//std::string packetstring = packet->ToString();
+		//NS_LOG_DEBUG("Packet to String:" << packetstring);
+		//Buffer payLoadContent = encrypted_packet->GetPayLoadContent();
+
+		//uint32_t encrypted_packet_size = encrypted_packet->GetSerializedSize();
+		//uint32_t packet_size = packet->GetSerializedSize();
+
+		//NS_LOG_DEBUG("1:: " << packet_size << " 2:: " << encrypted_packet_size);
+		//Ptr<Packet> test = encrypted_packet->Copy();
+		//encrypted_packet->AddAtEnd(test);
+
+
+		//NS_LOG_DEBUG("3:: " << encrypted_packet->GetSerializedSize() << " 4::  " << test->GetSerializedSize());
+		//uint32_t data = payLoadContent.ReadU32();
+		//NS_LOG_DEBUG ("PayLoadContent has : " << data.toString());
+
+		//uint32_t ser_size = payLoadContent.GetSerializedSize();
+		//uint8_t *ser = new uint8_t[ser_size];
+		//uint32_t *p = reinterpret_cast<uint32_t *> (ser);
+		//uint32_t isDone = payLoadContent.Serialize(ser, ser_size);
+		//uint32_t isDone = payLoadContent.Serialize(reinterpret_cast<uint8_t *> (p), ser_size);
+		//NS_LOG_DEBUG ("PayLoadContent Serializing done well -> 1 / something wrong -> 0  : " << isDone << "with ser_size " << ser_size);
+		//NS_LOG_DEBUG (*p);
+
+
+		//NS_LOG_DEBUG ("Packet's PayLoadContent Serialized is : ");
+		//uint32_t* just = reinterpret_cast<uint32_t *>(ser);
+		//for(uint32_t i = 0 ; i < ser_size; i++){
+			//NS_LOG_DEBUG("just values: " << just[i]);
+		//}
+
+		//std::string cipherKey = "2B7E151628AED2A6ABF7158809CF4F3C";
+		//aes128.encryption(str_converted_payLoadC, cipherKey, false);
+		//NS_LOG_DEBUG(static_cast<uint32_t>test);
+		//NS_LOG_DEBUG (reinterpret_cast<uint32_t *>(ser));
+		//NS_LOG_DEBUG (*(reinterpret_cast<uint32_t *>(ser)+1));
+		//NS_LOG_DEBUG (*ser);
+		//NS_LOG_DEBUG ("hi");
+		
+		//uint32_t* just = reinterpret_cast<uint32_t *>(ser);
+		//for(uint32_t i = 0; i < ser_size; i++){
+			//NS_LOG_DEBUG("just values: " << just[i]);  // just[i] & (uint32_t)ser[i] is same
+			//uint32_t temp = (uint32_t)ser[i];
+			//NS_LOG_DEBUG("just values : " << temp );
+		//}
+		//for(uint32_t i = 0; i < ser_size /sizeof(uint32_t); i++){
+			//NS_LOG_DEBUG("32 values : " << just[i]);
+		//}
 
         // send encrypted packet to VPN server
         m_clientSocket->SendTo (packet, 0, InetSocketAddress (m_serverAddress, m_serverPort));
@@ -81,11 +155,22 @@ namespace ns3 {
 
     void VPNClient::ReceivePacket (Ptr<Socket> socket) {
         Ptr<Packet> packet = socket->Recv (65535, 0);
-        ///// decrypt *packet
+		VpnHeader crypthdr;
+		packet->RemoveHeader(crypthdr);
+		NS_LOG_DEBUG ("Received " << *packet << "with decrypt message");
+        //std::string cipherKey = "2B7E151628AED2A6ABF7158809CF4F3C";
+		NS_LOG_DEBUG("Received : received encrypted -> " << crypthdr.GetEncrypted());
+		NS_LOG_DEBUG("Received : received originwas -> " << crypthdr.GetSentOrigin());
+		NS_LOG_DEBUG("Received : received decrypted -> " << crypthdr.DecryptInput(m_cipherKey, false));
 
-        NS_LOG_DEBUG ("Received " << *packet);
-        // receive packet
-        m_clientTap->Receive (packet, 0x0800, m_clientTap->GetAddress (), m_clientTap->GetAddress (), NetDevice::PACKET_HOST);
+		if(!crypthdr.GetSentOrigin().compare(crypthdr.DecryptInput(m_cipherKey,false))){
+			NS_LOG_DEBUG("Received : now really get correctly packet");
+	        // receive packet
+	        m_clientTap->Receive (packet, 0x0800, m_clientTap->GetAddress (), m_clientTap->GetAddress (), NetDevice::PACKET_HOST);
+		}
+		else{
+			NS_LOG_DEBUG("Received : wrong ,, do you sniffing?");
+		}
     }
 
     void VPNClient::DoDispose () {
