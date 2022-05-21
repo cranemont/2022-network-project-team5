@@ -5,60 +5,51 @@
 #include "ns3/ipv6-address.h"
 #include "ns3/uinteger.h"
 #include "ns3/vpn-helper.h"
-#include "ns3/vpn-client.h"
-// #include "ns3/vpn-server.h"
+#include "ns3/vpn-application.h"
 
-namespace ns3 {
-    // VPNServerHelper::VPNServerHelper (uint16_t port) {
-    //     m_factory.SetTypeId (VPNServer::GetTypeId ());
-    //     SetAttribute ("Port", UintegerValue (port));
-    // }
-
-    // VPNServerHelper::SetAttribute (std::string name, const AttributeValue &value) {
-    //     m_factory.Set (name, value);
-    // }
-
-    // ApplicationContainer VPNServerHelper::Install (Ptr<Node> node) const {
-    //     Ptr<Application> app = m_factory.Create<VPNServer> ();
-    //     node->AddApplication (app);
-    //     return app;
-    // }
-
-    VPNClientHelper::VPNClientHelper (Ipv4Address serverIp, uint16_t serverPort) {
-        m_factory.SetTypeId (VPNClient::GetTypeId ());
-        SetAttribute ("ServerAddress", Ipv4AddressValue (serverIp));
-        SetAttribute ("ServerPort", UintegerValue (serverPort));
+namespace ns3
+{
+    VPNHelper::VPNHelper(Ipv4Address clientIp, uint16_t clientPort)
+    {
+        m_factory.SetTypeId(VPNApplication::GetTypeId());
+        SetAttribute("ClientAddress", Ipv4AddressValue(clientIp));
+        SetAttribute("ClientPort", UintegerValue(clientPort));
     }
 
-    VPNClientHelper::VPNClientHelper (Ipv4Address serverIp, uint16_t serverPort, uint16_t clientPort) {
-        m_factory.SetTypeId (VPNClient::GetTypeId ());
-        SetAttribute ("ServerAddress", Ipv4AddressValue (serverIp));
+    VPNHelper::VPNHelper(Ipv4Address serverIp, uint16_t serverPort, uint16_t clientPort)
+    {
+        m_factory.SetTypeId(VPNApplication::GetTypeId());
+        SetAttribute("ServerAddress", Ipv4AddressValue(serverIp));
         if (serverPort != 0)
-            SetAttribute ("ServerPort", UintegerValue (serverPort));
-        SetAttribute ("ClientPort", UintegerValue (clientPort));
+            SetAttribute("ServerPort", UintegerValue(serverPort));
+        SetAttribute("ClientPort", UintegerValue(clientPort));
     }
 
-    VPNClientHelper::VPNClientHelper (Ipv4Address serverIp, Ipv4Address clientIp, uint16_t serverPort, uint16_t clientPort) { // TEMPORARY for test
-        m_factory.SetTypeId (VPNClient::GetTypeId ());
-        SetAttribute ("ServerAddress", Ipv4AddressValue (serverIp));
-        SetAttribute ("ClientAddress", Ipv4AddressValue (clientIp));
+    VPNHelper::VPNHelper(Ipv4Address serverIp, Ipv4Address clientIp, uint16_t serverPort, uint16_t clientPort)
+    { // TEMPORARY for test
+        m_factory.SetTypeId(VPNApplication::GetTypeId());
+        SetAttribute("ServerAddress", Ipv4AddressValue(serverIp));
+        SetAttribute("ClientAddress", Ipv4AddressValue(clientIp));
         if (serverPort != 0)
-            SetAttribute ("ServerPort", UintegerValue (serverPort));
-        SetAttribute ("ClientPort", UintegerValue (clientPort));
+            SetAttribute("ServerPort", UintegerValue(serverPort));
+        SetAttribute("ClientPort", UintegerValue(clientPort));
     }
 
-    VPNClientHelper::VPNClientHelper (Ipv4Address serverIp) {
-        m_factory.SetTypeId (VPNClient::GetTypeId ());
-        SetAttribute ("ServerAddress", Ipv4AddressValue (serverIp));
+    VPNHelper::VPNHelper(Ipv4Address serverIp)
+    {
+        m_factory.SetTypeId(VPNApplication::GetTypeId());
+        SetAttribute("ServerAddress", Ipv4AddressValue(serverIp));
     }
 
-    void VPNClientHelper::SetAttribute (std::string name, const AttributeValue &value) {
-        m_factory.Set (name, value);
+    void VPNHelper::SetAttribute(std::string name, const AttributeValue &value)
+    {
+        m_factory.Set(name, value);
     }
 
-    ApplicationContainer VPNClientHelper::Install (Ptr<Node> node) const {
-        Ptr<Application> app = m_factory.Create<VPNClient> ();
-        node->AddApplication (app);
+    ApplicationContainer VPNHelper::Install(Ptr<Node> node) const
+    {
+        Ptr<Application> app = m_factory.Create<VPNApplication>();
+        node->AddApplication(app);
         return app;
     }
 }
