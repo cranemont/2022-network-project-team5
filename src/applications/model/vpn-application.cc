@@ -91,7 +91,6 @@ namespace ns3
         NS_LOG_FUNCTION(this << cipherKey);
         m_cipherKey = cipherKey;
     }
-
     bool VPNApplication::SendPacket(Ptr<Packet> packet, const Address &src, const Address &dst, uint16_t protocolNumber)
     {
         NS_LOG_DEBUG("\nSend packet from VPN client " << m_clientVPNAddress << " -> " << m_serverAddress);
@@ -132,6 +131,7 @@ namespace ns3
         Ipv4Address destinationIPAddress = ipHeader.GetDestination();
         uint16_t destinationPort = udpHeader.GetDestinationPort();
 
+        NS_LOG_DEBUG("\nVPN server received");
         NS_LOG_DEBUG("VPN client address: " << m_clientVPNAddress);
         NS_LOG_DEBUG("Source IP: " << ipHeader.GetSource());
         NS_LOG_DEBUG("Destination IP: " << destinationIPAddress);

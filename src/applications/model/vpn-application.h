@@ -52,7 +52,7 @@ namespace ns3
         uint16_t m_clientPort;             // client port
         uint16_t m_clientInterface;        // client interface number in Ipv4
         Ptr<VirtualNetDevice> m_clientTap; // client TAP device
-
+        
         std::string m_cipherKey; // key
     };
 }

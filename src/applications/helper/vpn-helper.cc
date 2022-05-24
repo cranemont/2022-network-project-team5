@@ -39,6 +39,7 @@ namespace ns3
         m_factory.SetTypeId(VPNApplication::GetTypeId());
         SetAttribute("ServerAddress", Ipv4AddressValue(serverIp));
         SetAttribute("ClientAddress", Ipv4AddressValue(clientIp));
+      
         if (serverPort != 0)
             SetAttribute("ServerPort", UintegerValue(serverPort));
         SetAttribute("ClientPort", UintegerValue(clientPort));
