@@ -30,6 +30,7 @@ namespace ns3
 
         void SetServer(Ipv4Address addr, uint16_t port);
         void SetServer(Ipv4Address addr);
+        void SetCipherKey(std::string cipherKey);
 
         bool SendPacket(Ptr<Packet> packet, const Address &src, const Address &dst, uint16_t ptorocolNumber);
         void ReceivePacket(Ptr<Socket> socket);
@@ -51,8 +52,8 @@ namespace ns3
         uint16_t m_clientPort;             // client port
         uint16_t m_clientInterface;        // client interface number in Ipv4
         Ptr<VirtualNetDevice> m_clientTap; // client TAP device
-
-        // key
+        
+        std::string m_cipherKey; // key
     };
 }
 

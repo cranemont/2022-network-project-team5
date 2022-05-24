@@ -15,6 +15,9 @@
 #include "ns3/uinteger.h"
 #include "ns3/application.h"
 #include "vpn-application.h"
+#include "ns3/vpn-aes.h" // for using aes cryption
+#include "ns3/vpn-header.h"
+#include "ns3/string.h"
 
 namespace ns3
 {
@@ -50,7 +53,12 @@ namespace ns3
                                               "Server Mask",
                                               Ipv4MaskValue("255.255.255.0"),
                                               MakeIpv4MaskAccessor(&VPNApplication::m_serverMask),
-                                              MakeIpv4MaskChecker());
+                                              MakeIpv4MaskChecker())
+                                .AddAttribute("CipherKey",
+                                              "Private Cipher Key",
+                                              StringValue("12345678901234567890123456789012"),
+                                              MakeStringAccessor(&VPNApplication::m_cipherKey),
+                                              MakeStringChecker());
         return tid;
     }
 
@@ -78,10 +86,24 @@ namespace ns3
         m_serverAddress = addr;
     }
 
+    void VPNApplication::SetCipherKey(std::string cipherKey)
+    {
+        NS_LOG_FUNCTION(this << cipherKey);
+        m_cipherKey = cipherKey;
+    }
     bool VPNApplication::SendPacket(Ptr<Packet> packet, const Address &src, const Address &dst, uint16_t protocolNumber)
     {
         NS_LOG_DEBUG("\nSend packet from VPN client " << m_clientVPNAddress << " -> " << m_serverAddress);
         ///// encrypt *packet
+        NS_LOG_DEBUG("Send to : " << m_serverAddress << ": " << *packet << "with size " << packet->GetSize());
+
+        VpnHeader crypthdr;
+        std::string plainText = "62531124552322311567ABD150BBFFCC";
+
+        crypthdr.EncryptInput(plainText, m_cipherKey, false);
+        packet->AddHeader(crypthdr);
+        NS_LOG_DEBUG("Send to : encrypted -> " << crypthdr.GetEncrypted());
+        NS_LOG_DEBUG("Send to : originwas -> " << crypthdr.GetSentOrigin());
 
         // send encrypted packet to VPN server
         m_clientSocket->SendTo(packet, 0, InetSocketAddress(m_serverAddress, m_serverPort));
@@ -91,7 +113,14 @@ namespace ns3
     void VPNApplication::ReceivePacket(Ptr<Socket> socket)
     {
         Ptr<Packet> packet = socket->Recv(65535, 0);
+        NS_LOG_DEBUG("\nVPN server received");
         ///// decrypt *packet
+        VpnHeader crypthdr;
+        packet->RemoveHeader(crypthdr);
+        NS_LOG_DEBUG("Received " << *packet << "with decrypt message");
+        NS_LOG_DEBUG("Received : received encrypted -> " << crypthdr.GetEncrypted());
+        NS_LOG_DEBUG("Received : received originwas -> " << crypthdr.GetSentOrigin());
+        NS_LOG_DEBUG("Received : received decrypted -> " << crypthdr.DecryptInput(m_cipherKey, false));
 
         // forward decrypted packet
         Ptr<Packet> copy = packet->Copy();
@@ -110,7 +139,7 @@ namespace ns3
         NS_LOG_DEBUG("Destination Port: " << destinationPort);
         NS_LOG_DEBUG("Size: " << copy->GetSize());
 
-        if (m_clientVPNAddress == destinationIPAddress)
+        if (m_clientVPNAddress == destinationIPAddress && !crypthdr.GetSentOrigin().compare(crypthdr.DecryptInput(m_cipherKey, false)))
         {
             // Destiation of the packet is this VPN Client. Receive packet
             m_clientTap->Receive(packet, 0x0800, m_clientTap->GetAddress(), m_clientTap->GetAddress(), NetDevice::PACKET_HOST);

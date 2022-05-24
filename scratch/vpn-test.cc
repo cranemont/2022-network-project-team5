@@ -6,6 +6,8 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/udp-client-server-helper.h"
+#include "ns3/packet.h"
+#include "ns3/packet-metadata.h"
 
 /**
  *
@@ -46,6 +48,13 @@ int main(int argc, char *argv[])
     LogComponentEnable("VPNApplication", LOG_LEVEL_DEBUG);
     LogComponentEnable("OnOffApplication", LOG_LEVEL_INFO);
     LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
+    LogComponentEnable("VpnHeader", LOG_LEVEL_ALL);
+
+    Packet init;
+    init.EnablePrinting();
+    init.EnableChecking();
+
+    PacketMetadata::Enable();
 
     NodeContainer p2pNodes, n0n2, n1n2, n2n3, n0n1n2;
     p2pNodes.Create(4);
