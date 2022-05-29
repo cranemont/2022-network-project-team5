@@ -11,6 +11,27 @@
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
 
+/**
+ *
+ *
+    - VPN IP Adress -
+    n1: 12.0.0.1
+    n5: 11.0.0.100
+    n6: 11.0.0.101
+
+
+    << Network topology >>
+
+       Wifi 10.1.2.0
+     (V)  (V)       AP
+     *    *    *    *
+     |    |    |    |      10.1.1.0      (V)           (sink)
+    n5   n6   n7   n0 ------------------ n1   n2   n3   n4
+    (OnOff)             point-to-point    |    |    |    |
+                                          ================
+                                            LAN 11.0.0.0
+**/
+
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("VPNWifiTest");
