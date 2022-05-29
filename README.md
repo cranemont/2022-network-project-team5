@@ -1,5 +1,7 @@
 # Simple VPN Application
 
+[한글 버전](./README_ko.md)
+
 ## How to use
 
 ### Client
@@ -11,7 +13,7 @@ VPNHelper::VPNHelper (Ipv4Address serverIp, Ipv4Address clientIp, uint32_t serve
 VPNHelper::VPNHelper (Ipv4Address serverIp, Ipv4Address clientIp, uint32_t serverPort, uint32_t clientPort);
 ```
 
-Server IP and server port, and client port is necessary. When cipher key is not given, default value will be used. There are other constructors with less parameters and you can assign those attributes with `VPNHelper::SetAttribute(std::string, const AttributeValue&)` later.
+If cipher key is not given, default value will be used. There are other constructors with less parameters and you can assign those attributes with `VPNHelper::SetAttribute(std::string, const AttributeValue&)` later.
 
 There are six modifiable attributes.
 
@@ -93,7 +95,7 @@ n6:          /          /          /               / 11.0.0.4
 
 ### IP tunneling
 
-Referenced `virtual-net-device.cc` example file from ns3. From the source file, extracted `Tunnel` part which simulated IP tunneling part. This file showed an example of tunneling IP. However there was a static class managed all three nodes' send callback and receive callback, not a class which can be allocated to each node. So we made this static class to application to allocate to each node and work individually.
+Referenced [`virtual-net-device.cc`](https://www.nsnam.org/doxygen/examples_2virtual-net-device_8cc_source.html) example file from ns3. From the source file, extracted `Tunnel` part which simulated IP tunneling part. This file showed an example of tunneling IP. However there was a static class managed all three nodes' send callback and receive callback, not a class which can be allocated to each node. So we made this static class to application to allocate to each node and work individually.
 
 #### On start
 
@@ -161,7 +163,7 @@ original packet
 |     |--------------------------------|
 ----------------------------------------
 
-after NetDevice removes header
+after virtual socket removes header
 -------------Payload--------------
 | private IP | TCP/UDP | Payload | <- packet given to receive callback
 ----------------------------------
@@ -171,7 +173,7 @@ send to VirtualNetDevice::Recv()
 | TCP/UDP | Payload |
 ---------------------
 
-after VirtualNetDevice removes header
+after real socket removes header
 -----------
 | Payload |
 -----------
