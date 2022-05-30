@@ -223,4 +223,115 @@ after Socket::SendTo ()
 |------------------------------------|
 ```
 
-### VPN Header Encrypting/decrypting
+### VPN Header Encryption/decryption
+
+#### Purpose of VPN Header Definition 
+ To ensure confidentiality, one of the six objectives of information protection, using headers that encrypt and decrypt predefined plaintexts for communication between subscribers and servers on the VPN.
+
+#### Introducing the cipher-algorithm we used
+ The cryptographic algorithm used in the implementation used the AES algorithm. In AES, 
+ 
+ 1. It is known to be more reliable in attack than DES, the standard for data encryption.
+ 2. The plaintext to be encrypted and decrypted must be 128 bits in size, and there are three types of encryption keys: 128, 192, and 256 bits in length.
+ 3. Compared to the public key encryption method, it has the advantage of lighter computation and relatively simple encryption process.
+ 4. Block cipher mode is used to prevent the problem that the same ciphertext can be output if the plain text and the key are the same, and it is reflected so that it can be used by selecting between ECB and CBC modes.
+ 5. The number of Nr rounds is determined as 10, 12, and 14 depending on the length of the encryption key, and the MixColumn in the last round is omitted.
+ 6. SubByte in the figure below means S-box, transpose rows in ShiftRows step, and MixColumn is a step in which columns are expressed in the form of polynomials and then multiplied by a specific polynomial.
+ 7. While decrypting, the inverse polynomial of the specific polynomial multiplied is used, and the inverse-SubByte and inverse-ShitRows processes are performed similarly.
+ 
+ ```
+ |==========================|
+ |-- PlainText M(128 bit) --|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |--------- Ex-OR ----------|  <- 0 round key
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |-------- SubByte ---------|
+ |-------- ShiftRows--------|
+ |-------- MixColumn--------|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |--------- Ex-OR ----------|  <- 1 round key
+ |--------------------------|
+ |-------    ...  ----------|
+ |-------    ...  ----------|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  <- .. round
+ |-------    ...  ----------|
+ |-------    ...  ----------|
+ |-------- SubByte ---------|
+ |-------- ShiftRows--------|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |--------- Ex-OR ----------|  <- Nr round key
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |-------  CipherText ------|
+ |==========================|
+ ```
+
+#### Encryption/decryption in VPN header
+Use the two key methods below to do so.
+```cpp
+std::string EncryptInput(const std::string &input, const std::string &cipherKey, bool verbose);
+std::string DecryptInput(const std::string &cipherKey, bool verbose);
+```
+Each method performs an encryption algorithm by referring to the `AES` class defined in `vpn-aes.h`.
+
+##### Examples of encryption/decryption
+In the 'VPNAplication' layer that uses the VPN header,
+
+the sender's side
+```cpp
+VpnHeader crypthdr;
+std::string plainText = "62531124552322311567ABD150BBFFCC";
+crypthdr.EncryptInput(plainText, m_cipherKey, false);
+```
+
+the receiver's side
+```cpp
+VpnHeader crypthdr;
+packet->RemoveHeader(crypthdr);
+crypthdr.DecryptInput(m_cipherKey, false)
+```
+#### Core members (functions and variables) structure of VPN headers
+Suppose you use a 32-byte-long plaintext by default, and the 'private' variables to convert and extract to bytes between serial and reverse serialization are 'm_sentOrigin' and 'm_encrypted', so 'GetSerializedSize' is twice the 32-byte length of the specified plaintext.
+
+|access specifier|name|info|
+|:-:|-|-|
+|`public`|`EncryptInput`|Encryption function of plaintext|
+|`public`|`DecryptInput`|Decryption function of ciphertext|
+|`public`|`GetSerializedSize`|Required space definition function for serialization|
+|`public`|`Serialize`|Serialization Performance Function|
+|`public`|`Deserialize`|Deserialization Performance Function|
+|`public`|`GetSendOrigin`|Plain text return function|
+|`public`|`GetEncrypted`|Cipher text return function|
+|`private`|`m_sentOrigin`|Plain text member variable|
+|`private`|`m_encrypted`|Cipher text member variable|
+
+In addition, if you adjust the length of the plaintext, the 'Serialize' and 'Deserialize' functions that perform serialization also need to be modified to that length.
+
+##### Example
+Modifying to 16-byte length plaintext (minimum length of 128 bits)
+```cpp
+void VpnHeader::Serialize(Buffer::Iterator start) const
+  {
+    ...
+    for (int i = 0; i < 16; i++){ start.WriteU8(convert[i]); }  // 32 -> 16
+    ...
+  }
+uint32_t VpnHeader::GetSerializedSize(void) const
+  {
+    return 32;  // 32 -> 16
+  }
+
+  uint32_t VpnHeader::Deserialize(Buffer::Iterator start)
+  {
+    ...
+    for (int j = 0; j < 16; j++){ ss << i.ReadU8(); } // 32 -> 16
+    ...
+    
+    return 32;  // 64 -> 32
+  }
+```
