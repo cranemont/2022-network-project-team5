@@ -40,7 +40,15 @@ app.Stop (Seconds (10.));
 
 ### Server
 
-> Content for servers needed
+The VPN server uses the same `VPNAplication` as the VPN client.
+All nodes with `VPNAplication` installed have `VirtualNetDevice`, and the IP address of `VirtualNetDevice` is set to the `ClientAddress` attribute value of `VPNHelper`. If the destination IP address of the received packet is different from the IP address of `VirtualNetDevice`, it is sent to the destination via [IP forwarding](#IP-forwarding) and received via [`VirtualNetDevice::Receive()`](#Packet-Receive-Callback) only if the same.
+
+VPN server apps can be created using 'VPNHelper' just like client apps. Constructors of 'VPNHelper' for VPN server apps are provided as below
+
+```cpp
+VPNHelper::VPNHelper(Ipv4Address clientIp, uint16_t clientPort);
+VPNHelper::VPNHelper(Ipv4Address clientIp, uint16_t clientPort, std::string cipherKey);
+```
 
 #### Example
 
@@ -163,7 +171,7 @@ original packet
 |     |--------------------------------|
 ----------------------------------------
 
-after virtual socket removes header
+after real socket removes headers
 -------------Payload--------------
 | private IP | TCP/UDP | Payload | <- packet given to receive callback
 ----------------------------------
@@ -173,12 +181,46 @@ send to VirtualNetDevice::Recv()
 | TCP/UDP | Payload |
 ---------------------
 
-after real socket removes header
+after virtual socket removes headers
 -----------
 | Payload |
 -----------
 ```
 
-### IP forwarding
+#### IP forwarding
+
+If the destination address of a packet received in step 1 of [Packet Receive](#packet-receive-receive-event-callback) is different from the IP address assigned to `VirtualNetDevice`, it means that the packet is not for the `VPNApplication` installed on this node. In this case, `VirtualNetDevice::Receive()` function is not being called. It removes the IP header and TCP/UDP header using `Packet::RemoveHeader()` and then call the function `Socket:SendTo()` to forward the packet to the destination address.
+
+```
+original packet
+----------------------------------------------------
+|           |     |------------Payload-------------|
+| public IP | UDP | private IP | TCP/UDP | Payload |
+|           |     |--------------------------------|
+----------------------------------------------------
+
+----------------------------------------
+|     |------------Payload-------------|
+| UDP | private IP | TCP/UDP | Payload |
+|     |--------------------------------|
+----------------------------------------
+
+after real socket removes headers
+-------------Payload--------------
+| private IP | TCP/UDP | Payload | <- packet given to receive callback
+----------------------------------
+
+remove IpHeader and TcpHeader/UdpHeader
+Packet->RemoveHeader(IpHeader)
+Packet->RemoveHeader(TcpHeader/UdpHeader)
+-----------
+| Payload |
+-----------
+
+after Socket::SendTo ()
+|------------------------------------|
+| Destination IP | TCP/UDP | Payload |
+|------------------------------------|
+```
 
 ### VPN Header Encrypting/decrypting
