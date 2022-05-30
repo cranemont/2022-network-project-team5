@@ -40,7 +40,15 @@ app.Stop (Seconds (10.));
 
 ### 서버
 
-> 내용 추가 필요
+VPN 서버는 VPN 클라이언트와 동일한 `VPNApplication`을 사용합니다.
+모든 `VPNApplication`이 설치된 Node는 `VirtualNetDevice`를 가지며, `VirtualNetDevice`의 IP주소는 `VPNHelper`의 `ClientAddress` attribute 값으로 설정됩니다. 수신한 패킷의 목적지 IP주소가 `VirtualNetDevice`의 IP주소와 다른 경우에는 [IP forwarding](#IP-forwarding)을 통해 목적지로 보내고, 동일한 경우에만 [`VirtualNetDevice::Receive ()`](#패킷-수신-콜백)를 통해 패킷을 수신합니다.
+
+VPN 서버 앱은 클라이언트 앱과 동일하게 `VPNHelper`를 사용하여 만들 수 있습니다. VPN 서버를 위한 `VPNHelper`의 생성자는 다음과 같습니다.
+
+```cpp
+VPNHelper::VPNHelper(Ipv4Address clientIp, uint16_t clientPort);
+VPNHelper::VPNHelper(Ipv4Address clientIp, uint16_t clientPort, std::string cipherKey);
+```
 
 #### 예시
 
@@ -179,6 +187,40 @@ VirtualNetDevice::Recv() 호출
 -----------
 ```
 
-### IP forwarding
+#### IP forwarding
+
+[패킷 수신 콜백](#패킷-수신-콜백)의 1번 과정에서 수신한 패킷의 목적지 Address가 `VirtualNetDevice`에 할당된 IP주소와 다르다면 해당 패킷은 해당 Node에 설치된 `VPNApplication`을 위한 패킷이 아님을 의미합니다. 이 경우 `VirtualNetDevice::Receive ()`함수를 호출하지 않고 `Packet::RemoveHeader ()`를 사용하여 IP header 및 TCP/UDP header를 제거한 뒤 `Socket::SendTo ()`함수를 호출하여 목적지 Address로 패킷을 forwarding합니다.
+
+```
+수신한 패킷
+----------------------------------------------------
+|           |     |------------Payload-------------|
+| public IP | UDP | private IP | TCP/UDP | Payload |
+|           |     |--------------------------------|
+----------------------------------------------------
+
+----------------------------------------
+|     |------------Payload-------------|
+| UDP | private IP | TCP/UDP | Payload |
+|     |--------------------------------|
+----------------------------------------
+
+Socket이 헤더를 제거
+-------------Payload--------------
+| private IP | TCP/UDP | Payload | <- packet given to receive callback
+----------------------------------
+
+IpHeader, TcpHeader/UdpHeader 제거
+Packet->RemoveHeader(IpHeader)
+Packet->RemoveHeader(TcpHeader/UdpHeader)
+-----------
+| Payload |
+-----------
+
+Socket::SendTo ()가 완료된 후
+|------------------------------------|
+| Destination IP | TCP/UDP | Payload |
+|------------------------------------|
+```
 
 ### VPN Header Encrypting/decrypting
