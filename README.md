@@ -280,7 +280,7 @@ std::string DecryptInput(const std::string &cipherKey, bool verbose);
 Each method performs an encryption algorithm by referring to the `AES` class defined in `vpn-aes.h`.
 
 ##### Examples of encryption/decryption
-In the 'VPNAplication' layer that uses the VPN header,
+In the `VPNAplication` layer that uses the VPN header,
 
 the sender's side
 ```cpp
@@ -296,7 +296,7 @@ packet->RemoveHeader(crypthdr);
 crypthdr.DecryptInput(m_cipherKey, false)
 ```
 #### Core members (functions and variables) structure of VPN headers
-Suppose you use a 32-byte-long plaintext by default, and the 'private' variables to convert and extract to bytes between serial and reverse serialization are 'm_sentOrigin' and 'm_encrypted', so 'GetSerializedSize' is twice the 32-byte length of the specified plaintext.
+Suppose you use a 32-byte-long plaintext by default, and the `private` variables to convert and extract to bytes between serial and reverse serialization are `m_sentOrigin` and `m_encrypted`, so `GetSerializedSize` is twice the 32-byte length of the specified plaintext.
 
 |access specifier|name|info|
 |:-:|-|-|
@@ -310,7 +310,7 @@ Suppose you use a 32-byte-long plaintext by default, and the 'private' variables
 |`private`|`m_sentOrigin`|Plain text member variable|
 |`private`|`m_encrypted`|Cipher text member variable|
 
-In addition, if you adjust the length of the plaintext, the 'Serialize' and 'Deserialize' functions that perform serialization also need to be modified to that length.
+In addition, if you adjust the length of the plaintext, the `Serialize` and `Deserialize` functions that perform serialization also need to be modified to that length.
 
 ##### Example
 Modifying to 16-byte length plaintext (minimum length of 128 bits)
