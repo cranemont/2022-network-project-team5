@@ -17,12 +17,12 @@
  //               n3  n4  n5
  //             (sink) 
  //
- // n0: 10.1.1.1 /          / 11.0.0.2(V)
- // n1: 10.1.1.2 / 10.2.1.1 /
- // n2:          /          / 10.2.1.2 / 12.0.0.1(V)   / 11.0.0.1
- // n3:          /          /          /               / 11.0.0.2
- // n4:          /          /          /               / 11.0.0.3
- // n5:          /          /          /               / 11.0.0.4
+ // n0: 10.1.1.1 /          / 11.0.0.100(V)
+ // n1: 10.1.1.2 / 10.2.1.1
+ // n2:          / 10.2.1.2 / 12.0.0.1(V)  / 11.0.0.1
+ // n3:          /          /              / 11.0.0.2
+ // n4:          /          /              / 11.0.0.3
+ // n5:          /          /              / 11.0.0.4
  //
  //
  // n0 -> n3 (Private)
@@ -41,7 +41,7 @@ Sniffer (Ptr<const Packet> p)
     NS_LOG_DEBUG("SNIFFING START");
     VpnHeader vpnHeader;
     copy->RemoveHeader(vpnHeader);
-    NS_LOG_DEBUG("Sniffing : data -> " << vpnHeader.DecryptInput("test", false));
+    NS_LOG_DEBUG("Sniffing : data -> " << vpnHeader.DecryptInput("test32bytescipherkeyaesvpnpacket", false));
     
     Ipv4Header ipHeader;
     copy->RemoveHeader(ipHeader);
