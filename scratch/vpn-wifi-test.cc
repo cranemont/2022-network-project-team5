@@ -14,36 +14,77 @@
 /**
  *
  *
-    - VPN IP Adress -
-    n1: 12.0.0.1
-    n5: 11.0.0.100
-    n6: 11.0.0.101
+    n0: 10.1.1.1 / 10.1.2.3 /               /
+    n1: 10.1.1.2 /          / 12.0.0.1(V)   / 11.0.0.1
+    n2:          /          /               / 11.0.0.2
+    n3:          /          /               / 11.0.0.3
+    n4:          /          /               / 11.0.0.4
+    n5:          / 10.1.2.1 / 11.0.0.100(V) /
+    n6:          / 10.1.2.2 /               /
+
+    n5 -> n1 (Private)
+    n6 -> n1 (Public)
 
 
     << Network topology >>
 
-       Wifi 10.1.2.0
-     (V)  (V)       AP
-     *    *    *    *
-     |    |    |    |      10.1.1.0      (V)           (sink)
-    n5   n6   n7   n0 ------------------ n1   n2   n3   n4
-    (OnOff)             point-to-point    |    |    |    |
-                                          ================
-                                            LAN 11.0.0.0
+      Wifi 10.1.2.0
+     (V)           AP
+     *      *      *
+     |      |      |      10.1.1.0      (V)           (sink)
+    n5     n6     n0 ------------------ n1   n2   n3   n4
+       (sniffer)       point-to-point    |    |    |    |
+    (OnOff)                              ================
+                                           LAN 11.0.0.0
 **/
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("VPNWifiTest");
 
+static void
+Throughput (Ptr<const Packet> p, const Address &addr)
+{
+    static double bytes0=0, bytes1=0;
+    static double time0=1, time1=1;
+    static double period0=0, period1=0;
+    double now = Simulator::Now().GetSeconds();
+
+    if (InetSocketAddress::ConvertFrom(addr).GetIpv4() == "11.0.0.1") {
+        bytes0 += p->GetSize();
+        
+        double period = now - time0;
+        time0 = now;
+
+        period0 += period;
+        if (period0 < 0.1) return;
+
+        NS_LOG_UNCOND("0\t" << now << "\t" << bytes0*8/1000000/period0);
+        bytes0 = 0;
+        period0 = 0;
+    }
+    else if (InetSocketAddress::ConvertFrom(addr).GetIpv4() == "10.1.2.2") {
+        bytes1 += p->GetSize();
+
+        double period = now - time1;
+        time1 = now;
+        
+        period1 += period;
+        if (period1 < 0.1) return;
+
+        NS_LOG_UNCOND("1\t" << now << "\t" << bytes1*8/1000000/period1);
+        bytes1 = 0;
+        period1 = 0;
+    }
+}
+
 int
 main(int argc, char *argv[])
 {
-    bool verbose = true;
+    bool verbose = false;
     bool tracing = true;
     uint32_t nCsma = 3;
-    uint32_t nWifi = 3;
-    // uint32_t payloadSize = 1472;  //bytes
+    uint32_t nWifi = 2;
 
     CommandLine cmd;
     cmd.AddValue("nCsma", "Number of \"extra\" CSMA nodes/devices", nCsma);
@@ -162,39 +203,37 @@ main(int argc, char *argv[])
 
     VPNHelper
         vpnServer("12.0.0.1", 50000),
-        vpnClient1("10.1.1.2", "11.0.0.100", 50000, 50000),
-        vpnClient2("10.1.1.2", "11.0.0.101", 50000, 50000);
+        vpnClient("10.1.1.2", "11.0.0.100", 50000, 50000);
 
-    ApplicationContainer vpnServerApp, vpnClientApp1, vpnClientApp2;
+    ApplicationContainer vpnServerApp, vpnClientApp;
     vpnServerApp = vpnServer.Install(p2pNodes.Get(1));
-    vpnClientApp1 = vpnClient1.Install(wifiStaNodes.Get(0));
-    vpnClientApp2 = vpnClient2.Install(wifiStaNodes.Get(1));
+    vpnClientApp = vpnClient.Install(wifiStaNodes.Get(0));
 
     vpnServerApp.Start(Seconds(1.0));
-    vpnServerApp.Stop(Seconds(10.0));
+    vpnServerApp.Stop(Seconds(16.0));
 
-    vpnClientApp1.Start(Seconds(1.0));
-    vpnClientApp1.Stop(Seconds(10.0));
-
-    vpnClientApp2.Start(Seconds(1.0));
-    vpnClientApp2.Stop(Seconds(10.0));
+    vpnClientApp.Start(Seconds(1.0));
+    vpnClientApp.Stop(Seconds(16.0));
 
     OnOffHelper client("ns3::UdpSocketFactory", Address(InetSocketAddress(csmaInterfaces.GetAddress(nCsma), 9)));
-    client.SetConstantRate(DataRate("1kb/s"));
-    // client.SetAttribute("PacketSize", UintegerValue(payloadSize));
+	client.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+	client.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    client.SetAttribute("DataRate", DataRateValue(5000000));
 
     ApplicationContainer clientApps;
     clientApps.Add(client.Install(wifiStaNodes.Get(0)));
     clientApps.Add(client.Install(wifiStaNodes.Get(1)));
     clientApps.Start(Seconds(1.0));
-    clientApps.Stop(Seconds(10.0));
+    clientApps.Stop(Seconds(16.0));
 
     PacketSinkHelper server("ns3::UdpSocketFactory", Address(InetSocketAddress(Ipv4Address::GetAny(), 9)));
     ApplicationContainer serverApps = server.Install(csmaNodes.Get(nCsma));
     serverApps.Start(Seconds(1.0));
-    serverApps.Stop(Seconds(10.0));
+    serverApps.Stop(Seconds(16.0));
 
-    Simulator::Stop(Seconds(11.0));
+    serverApps.Get(0)->TraceConnectWithoutContext("Rx", MakeCallback(&Throughput));
+
+    Simulator::Stop(Seconds(16.0));
 
     if (tracing)
     {
