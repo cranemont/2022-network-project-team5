@@ -17,7 +17,9 @@
     n4:          /          /               / 11.0.0.3
     n5:          /          /               / 11.0.0.4
 
-    n0 -> n5 (Private, Encryption)
+    n0 -> n2 -> n5 (Private, Encryption)
+       n1
+    (sniffer)
 
 
     << Network topology >>

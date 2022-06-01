@@ -20,20 +20,20 @@
     n5:          /          /          /               / 11.0.0.3
     n6:          /          /          /               / 11.0.0.4
 
-
-    n0 -> n3 (Private, Encryption)
-    n1 -> n3 (Public)
+    n0 -> n3 -> n4 (Private, Encryption)
+    n1    ->    n4 (Public)
+    
 
     << Network topology >>
     (OnOff)
         n0
-          \ 5Mb/s, 10us
+          \ 5Mbps, 10us
            \
-            \          50Mb/s, 10us
+            \          50Mbps, 10us
             n2 -------------------------n3
-            /                           | CSMA, 100Mb/s, 100ns
+            /                           | CSMA, 100Mbps, 100ns
            /                            |_______
-          / 5Mb/s, 10us                |   |   |
+          / 5Mbps, 10us                 |   |   |
         n1                             n4  n5  n6
     (OnOff)                          (sink)
 **/

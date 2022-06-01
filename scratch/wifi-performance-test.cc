@@ -22,20 +22,21 @@
     n5:          / 10.1.2.1 / 11.0.0.100(V) /
     n6:          / 10.1.2.2 /               /
 
-    n5 -> n1 (Private)
-    n6 -> n1 (Public)
+    n5 -> n1 -> n4 (Private, Encryption)
+    n6    ->    n4 (Public)
 
 
     << Network topology >>
 
     Wifi 10.1.2.0
-     (V)       AP
+    (V)       AP
      *    *    *
      |    |    |      10.1.1.0      (V)           (sink)
     n5   n6   n0 ------------------ n1   n2   n3   n4
     (OnOff)        point-to-point    |    |    |    |
-                                     ================
+                    10Mbps, 10us     ================
                                        LAN 11.0.0.0
+                                      100Mbps, 100ns
 **/
 
 using namespace ns3;
