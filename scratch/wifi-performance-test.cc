@@ -28,19 +28,19 @@
 
     << Network topology >>
 
-      Wifi 10.1.2.0
-     (V)           AP
-     *      *      *
-     |      |      |      10.1.1.0      (V)           (sink)
-    n5     n6     n0 ------------------ n1   n2   n3   n4
-       (sniffer)       point-to-point    |    |    |    |
-    (OnOff)                              ================
-                                           LAN 11.0.0.0
+    Wifi 10.1.2.0
+     (V)       AP
+     *    *    *
+     |    |    |      10.1.1.0      (V)           (sink)
+    n5   n6   n0 ------------------ n1   n2   n3   n4
+    (OnOff)        point-to-point    |    |    |    |
+                                     ================
+                                       LAN 11.0.0.0
 **/
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("VPNWifiTest");
+NS_LOG_COMPONENT_DEFINE("WifiPerformenceTest");
 
 static void
 Throughput (Ptr<const Packet> p, const Address &addr)
@@ -105,7 +105,7 @@ main(int argc, char *argv[])
 
     if (verbose)
     {
-        LogComponentEnable("VPNWifiTest", LOG_LEVEL_DEBUG);
+        LogComponentEnable("WifiPerformenceTest", LOG_LEVEL_DEBUG);
         LogComponentEnable("VPNApplication", LOG_LEVEL_DEBUG);
         LogComponentEnable("OnOffApplication", LOG_LEVEL_INFO);
         LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
@@ -237,9 +237,9 @@ main(int argc, char *argv[])
 
     if (tracing)
     {
-        pointToPoint.EnablePcapAll("vpn-wifi-test-p2p");
-        phy.EnablePcap("vpn-wifi-test-ap", apDevices.Get(0));
-        csma.EnablePcap("vpn-wifi-test-csma", csmaDevices.Get(0), true);
+        pointToPoint.EnablePcapAll("wifi-performence-test-p2p");
+        phy.EnablePcap("wifi-performence-test-ap", apDevices.Get(0));
+        csma.EnablePcap("wifi-performence-test-csma", csmaDevices.Get(0), true);
     }
 
     Simulator::Run();
