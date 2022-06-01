@@ -45,17 +45,37 @@ NS_LOG_COMPONENT_DEFINE("PerformanceTest");
 static void
 RxTime (std::string context, Ptr<const Packet> p, const Address &a)
 {
-  static double bytes1=0, bytes2;
-  if(context == "VPN"){
-    bytes1 += p->GetSize();
-    NS_LOG_UNCOND(Simulator::Now().GetSeconds()
-			<< "\t" << bytes1*8/1000000/(Simulator::Now().GetSeconds()-1));
-  }else{
-    bytes2 += p->GetSize();
-  
-    NS_LOG_UNCOND(Simulator::Now().GetSeconds()
-			<< "\t" << bytes2*8/1000000/(Simulator::Now().GetSeconds()-1));
-  }
+  static double bytes0=0, bytes1=0;
+    static double time0=1, time1=1;
+    static double period0=0, period1=0;
+    double now = Simulator::Now().GetSeconds();
+
+    if (context == "VPN") {
+        bytes0 += p->GetSize();
+        
+        double period = now - time0;
+        time0 = now;
+
+        period0 += period;
+        if (period0 < 0.1) return;
+
+        NS_LOG_UNCOND("VPN\t" << now << "\t" << bytes0*8/1000000/period0);
+        bytes0 = 0;
+        period0 = 0;
+    }
+    else {
+        bytes1 += p->GetSize();
+
+        double period = now - time1;
+        time1 = now;
+        
+        period1 += period;
+        if (period1 < 0.1) return;
+
+        NS_LOG_UNCOND("NORMAL\t" << now << "\t" << bytes1*8/1000000/period1);
+        bytes1 = 0;
+        period1 = 0;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -76,7 +96,7 @@ int main(int argc, char *argv[])
     csmaNodes.Create(3);
 
     PointToPointHelper pointToPoint;
-    pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
+    pointToPoint.SetDeviceAttribute("DataRate", StringValue("50Mbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("10us"));
 
     NetDeviceContainer p2pDevices1, p2pDevices2, p2pDevices3;
@@ -129,14 +149,16 @@ int main(int argc, char *argv[])
     vpnApp2.Stop(Seconds(10.0));
 
     OnOffHelper client("ns3::UdpSocketFactory", Address(InetSocketAddress(Ipv4Address("11.0.0.2"), 9)));
-    client.SetAttribute("DataRate", DataRateValue(6000000));
+    client.SetAttribute("PacketSize", UintegerValue(50000));
     client.SetAttribute("OnTime",	StringValue("ns3::ConstantRandomVariable[Constant=1]"));
     client.SetAttribute("OffTime",	StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    client.SetAttribute("DataRate", DataRateValue(5000000));
 
     OnOffHelper client2("ns3::UdpSocketFactory", Address(InetSocketAddress(Ipv4Address("11.0.0.2"), 10)));
-    client2.SetAttribute("DataRate", DataRateValue(6000000));
+    client2.SetAttribute("PacketSize", UintegerValue(50000));
     client2.SetAttribute("OnTime",	StringValue("ns3::ConstantRandomVariable[Constant=1]"));
     client2.SetAttribute("OffTime",	StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    client.SetAttribute("DataRate", DataRateValue(5000000));
 
     ApplicationContainer clientApp = client.Install(n0);
     clientApp.Start(Seconds(1.0));
