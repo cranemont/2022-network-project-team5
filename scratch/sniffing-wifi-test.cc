@@ -1,13 +1,11 @@
-#include "ns3/vpn-application.h"
+#include "ns3/vpn-application.h" 
 #include "ns3/core-module.h"
-#include "ns3/csma-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/udp-client-server-helper.h"
-#include "ns3/packet.h"
-#include "ns3/packet-metadata.h"
+#include "ns3/csma-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
 
@@ -23,65 +21,71 @@
     n6:          / 10.1.2.2 /               /
 
     n5 -> n1 (Private)
-    n6 -> n1 (Public)
 
 
     << Network topology >>
 
-    Wifi 10.1.2.0
-     (V)       AP
-     *    *    *
-     |    |    |      10.1.1.0      (V)           (sink)
-    n5   n6   n0 ------------------ n1   n2   n3   n4
-    (OnOff)        point-to-point    |    |    |    |
-                                     ================
-                                       LAN 11.0.0.0
+      Wifi 10.1.2.0
+     (V)           AP
+     *      *      *
+     |      |      |      10.1.1.0      (V)           (sink)
+    n5     n6     n0 ------------------ n1   n2   n3   n4
+       (sniffer)       point-to-point    |    |    |    |
+  (OnOff)                                ================
+                                           LAN 11.0.0.0
 **/
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("WifiPerformenceTest");
+NS_LOG_COMPONENT_DEFINE("SniffingWifiTest");
 
 static void
-Throughput (Ptr<const Packet> p, const Address &addr)
+Sniffer (Ptr<const Packet> p)
 {
-    static double bytes0=0, bytes1=0;
-    static double time0=1, time1=1;
-    static double period0=0, period1=0;
-    double now = Simulator::Now().GetSeconds();
+    Ptr<Packet> copy = p->Copy();
 
-    if (InetSocketAddress::ConvertFrom(addr).GetIpv4() == "11.0.0.1") {
-        bytes0 += p->GetSize();
-        
-        double period = now - time0;
-        time0 = now;
+    NS_LOG_DEBUG("\n>> SNIFFING START");
+    VpnHeader vpnHeader;
+    copy->RemoveHeader(vpnHeader);
+    NS_LOG_DEBUG("Sniffing : encrypted data -> " << vpnHeader.GetEncrypted());
+    NS_LOG_DEBUG("Sniffing : decrypted data -> " << vpnHeader.DecryptInput("00000000000000000000000000000000", false));
 
-        period0 += period;
-        if (period0 < 0.1) return;
-
-        NS_LOG_UNCOND("0\t" << now << "\t" << bytes0*8/1000000/period0);
-        bytes0 = 0;
-        period0 = 0;
+    if (vpnHeader.DecryptInput("00000000000000000000000000000000", false) != vpnHeader.GetSentOrigin())
+    {
+        NS_LOG_DEBUG(">> SNIFFING FAIL");
+        return;
     }
-    else if (InetSocketAddress::ConvertFrom(addr).GetIpv4() == "10.1.2.2") {
-        bytes1 += p->GetSize();
-
-        double period = now - time1;
-        time1 = now;
-        
-        period1 += period;
-        if (period1 < 0.1) return;
-
-        NS_LOG_UNCOND("1\t" << now << "\t" << bytes1*8/1000000/period1);
-        bytes1 = 0;
-        period1 = 0;
+    
+    Ipv4Header ipHeader;
+    copy->RemoveHeader(ipHeader);
+    if (ipHeader.GetProtocol() == 6)
+    {
+        TcpHeader tcpHeader;
+        copy->RemoveHeader(tcpHeader);
+        NS_LOG_DEBUG("Source IP: " << ipHeader.GetSource());
+        NS_LOG_DEBUG("Destination IP: " << ipHeader.GetDestination());
+        NS_LOG_DEBUG("Source Port: " << tcpHeader.GetSourcePort());
+        NS_LOG_DEBUG("Destination Port: " << tcpHeader.GetDestinationPort());
+        NS_LOG_DEBUG("Size: " << copy->GetSize());
     }
+    else if (ipHeader.GetProtocol() == 17)
+    {
+        UdpHeader udpHeader;
+        copy->RemoveHeader(udpHeader);
+        NS_LOG_DEBUG("Source IP: " << ipHeader.GetSource());
+        NS_LOG_DEBUG("Destination IP: " << ipHeader.GetDestination());
+        NS_LOG_DEBUG("Source Port: " << udpHeader.GetSourcePort());
+        NS_LOG_DEBUG("Destination Port: " << udpHeader.GetDestinationPort());
+        NS_LOG_DEBUG("Size: " << copy->GetSize());
+    }
+
+    NS_LOG_DEBUG(">> SNIFFING SUCCESS");
 }
 
 int
 main(int argc, char *argv[])
 {
-    bool verbose = false;
+    bool verbose = true;
     bool tracing = true;
     uint32_t nCsma = 3;
     uint32_t nWifi = 2;
@@ -105,7 +109,7 @@ main(int argc, char *argv[])
 
     if (verbose)
     {
-        LogComponentEnable("WifiPerformenceTest", LOG_LEVEL_DEBUG);
+        LogComponentEnable("SniffingWifiTest", LOG_LEVEL_DEBUG);
         LogComponentEnable("VPNApplication", LOG_LEVEL_DEBUG);
         LogComponentEnable("OnOffApplication", LOG_LEVEL_INFO);
         LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
@@ -200,6 +204,9 @@ main(int argc, char *argv[])
     csmaInterfaces = address.Assign(csmaDevices);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    
+    p2pDevices.Get(0)->TraceConnectWithoutContext("PromiscSniffer", MakeCallback(&Sniffer));
+    // apDevices.Get(0)->GetObject<WifiNetDevice>()->GetMac()->TraceConnectWithoutContext("MacPromiscRx", MakeCallback(&Sniffer));
 
     VPNHelper
         vpnServer("12.0.0.1", 50000),
@@ -210,36 +217,30 @@ main(int argc, char *argv[])
     vpnClientApp = vpnClient.Install(wifiStaNodes.Get(0));
 
     vpnServerApp.Start(Seconds(1.0));
-    vpnServerApp.Stop(Seconds(16.0));
+    vpnServerApp.Stop(Seconds(10.0));
 
     vpnClientApp.Start(Seconds(1.0));
-    vpnClientApp.Stop(Seconds(16.0));
+    vpnClientApp.Stop(Seconds(10.0));
 
     OnOffHelper client("ns3::UdpSocketFactory", Address(InetSocketAddress(csmaInterfaces.GetAddress(nCsma), 9)));
-	client.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
-	client.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
-    client.SetAttribute("DataRate", DataRateValue(5000000));
+    client.SetConstantRate(DataRate("1kb/s"));
 
-    ApplicationContainer clientApps;
-    clientApps.Add(client.Install(wifiStaNodes.Get(0)));
-    clientApps.Add(client.Install(wifiStaNodes.Get(1)));
+    ApplicationContainer clientApps = client.Install(wifiStaNodes.Get(0));
     clientApps.Start(Seconds(1.0));
-    clientApps.Stop(Seconds(16.0));
+    clientApps.Stop(Seconds(10.0));
 
     PacketSinkHelper server("ns3::UdpSocketFactory", Address(InetSocketAddress(Ipv4Address::GetAny(), 9)));
     ApplicationContainer serverApps = server.Install(csmaNodes.Get(nCsma));
     serverApps.Start(Seconds(1.0));
-    serverApps.Stop(Seconds(16.0));
+    serverApps.Stop(Seconds(10.0));
 
-    serverApps.Get(0)->TraceConnectWithoutContext("Rx", MakeCallback(&Throughput));
-
-    Simulator::Stop(Seconds(16.0));
+    Simulator::Stop(Seconds(11.0));
 
     if (tracing)
     {
-        pointToPoint.EnablePcapAll("wifi-performence-test-p2p");
-        phy.EnablePcap("wifi-performence-test-ap", apDevices.Get(0));
-        csma.EnablePcap("wifi-performence-test-csma", csmaDevices.Get(0), true);
+        pointToPoint.EnablePcapAll("sniffing-wifi-test-p2p");
+        phy.EnablePcap("sniffing-wifi-test-ap", apDevices.Get(0));
+        csma.EnablePcap("sniffing-wifi-test-csma", csmaDevices.Get(0), true);
     }
 
     Simulator::Run();
