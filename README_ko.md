@@ -299,6 +299,7 @@ uint32_t VpnHeader::GetSerializedSize(void) const
 
 ## 테스트 환경
 
+#### Sniffing Test
 ```
           point-to-point
  (V)  10.1.1.0      10.1.2.0  (V)           (sink)
@@ -319,7 +320,12 @@ n3:          /          /               / 11.0.0.2
 n4:          /          /               / 11.0.0.3
 n5:          /          /               / 11.0.0.4
 ```
+VPN을 통해 n0에서 n2를 거쳐 n5로 통신할 때 중간 노드인 n1이 sniffing을 시도하는 상황을 시뮬레이션 합니다.<br/>
+n1에서 PromiscSniffer Trace source를 활용하여 지나가는 모든 패킷을 sniffing하고, sniffing이 성공하는 경우 디버그 모드에서 source와 destination의 주소를 출력합니다.
 
+<img src="https://user-images.githubusercontent.com/58473522/171424934-2bdd6348-16ea-49d9-9061-b79bca7bf9f6.png" width="700"/>
+
+#### p2p link performance Test
 ```
 (OnOff)
     n0
@@ -346,6 +352,7 @@ n5:          /          /          /               / 11.0.0.3
 n6:          /          /          /               / 11.0.0.4
 ```
 
+#### wifi performance Test
 ```
 Wifi 10.1.2.0
 (V)       AP
@@ -369,3 +376,7 @@ n4:          /          /               / 11.0.0.4
 n5:          / 10.1.2.1 / 11.0.0.100(V) /
 n6:          / 10.1.2.2 /               /
 ```
+wifi 통신 상황에서의 VPN 통신을 측정합니다.<br/>
+OnoffApplication의 DataRate 값을 5Mbps로 constant하게 고정한 후 normal 통신과 비교합니다.
+
+![image](https://user-images.githubusercontent.com/58473522/171427002-0065b2df-b277-4362-bc69-832355d2430f.png)
