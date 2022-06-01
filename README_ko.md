@@ -361,6 +361,20 @@ n5:          /          /          /               / 11.0.0.3
 n6:          /          /          /               / 11.0.0.4
 ```
 
+n0 노드에서 n4 노드까지는 VPN 어플리케이션을 이용하여 전송하고, n1 에서 n4 노드로의 전송은 일반적인 패킷 전송 플로우로 보낸다.
+위 예제에서는 OnOff 어플리케이션을 이용하여, 패킷 사이즈를 각각 1000, 10000, 50000 byte로 변경해가며, n4 노드에서의 각 플로우에 의한 패킷 송신량을 측정하였다. 
+아래의 그래프를 통해, 패킷의 크기가 커질 수록, VPN 어플리케이션을 통한 패킷 송신량이 현저하게 줄어드는 것을 볼 수 있다.
+이를 통해 추론할 수 있는 것은, VPN 어플리케이션을 통해 크기가 작은 패킷을 전송 시에는 유리한 점이 있지만, 큰 사이즈의 패킷을 전송 시에는 일반적인 패킷 전송보다 속도가 느려질 수 있다는 점이다.
+
+![output_10](https://user-images.githubusercontent.com/36075767/171458565-99794ed9-dd8e-47b1-b81c-f1f0c04c631a.png)
+[ packet size = 1000bytes ]
+
+![output_100](https://user-images.githubusercontent.com/36075767/171458653-c86d7b12-b193-45c5-bff8-83b4601d700d.png)
+[ packet size = 10000bytes ]
+
+![output_500](https://user-images.githubusercontent.com/36075767/171458734-df93484c-340c-4d11-9c07-ebeebbda0164.png)
+[ packet size = 50000bytes ] 
+
 #### wifi performance Test
 ```
 Wifi 10.1.2.0
