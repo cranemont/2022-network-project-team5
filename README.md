@@ -2,6 +2,9 @@
 
 [한글 버전](./README_ko.md)
 
+This project aims to implement simple VPN communication in an ns-3 environment.<br/>
+In order to implement critical security and private network access through IP changes in VPNs, the focus is on implementing encryption and tunneling.
+
 ## How to use
 
 ### Client
@@ -380,3 +383,7 @@ Measure VPN communication throughput in wifi communication situations.<br/>
 Constantly fix the DataRate value of OnOffApplication to 5Mbps and compare it with normal communication.
 
 ![image](https://user-images.githubusercontent.com/58473522/171427002-0065b2df-b277-4362-bc69-832355d2430f.png)
+
+## License
+This project is open under the GPLv2 license.<br/>
+You can see the full license at [LICENSE](https://github.com/nsnam/ns-3-dev-git/blob/master/LICENSE).
