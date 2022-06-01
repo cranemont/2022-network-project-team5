@@ -50,7 +50,7 @@ Sniffer (Ptr<const Packet> p)
     NS_LOG_DEBUG("Sniffing : encrypted data -> " << vpnHeader.GetEncrypted());
     NS_LOG_DEBUG("Sniffing : decrypted data -> " << vpnHeader.DecryptInput("00000000000000000000000000000000", false));
 
-    if (vpnHeader.DecryptInput("00000000000000000000000000000000", false) != vpnHeader.GetEncrypted())
+    if (vpnHeader.DecryptInput("00000000000000000000000000000000", false) != vpnHeader.GetSentOrigin())
     {
         NS_LOG_DEBUG(">> SNIFFING FAIL");
         return;
@@ -79,7 +79,7 @@ Sniffer (Ptr<const Packet> p)
         NS_LOG_DEBUG("Size: " << copy->GetSize());
     }
 
-    NS_LOG_DEBUG(">> SNIFFING END");
+    NS_LOG_DEBUG(">> SNIFFING SUCCESS");
 }
 
 int
