@@ -2,6 +2,9 @@
 
 [English Version](./README.md)
 
+이 프로젝트는 ns-3 환경에서 간단한 VPN 통신을 구현하는 것을 목적으로 합니다.<br/>
+VPN에서 중요한 보안과 IP변경을 통한 사설망 접근을 구현하기 위해, 암호화와 터널링의 구현에 중점을 둡니다.
+
 ## 사용법
 
 ### 클라이언트
@@ -380,3 +383,7 @@ wifi 통신 상황에서의 VPN 통신을 측정합니다.<br/>
 OnoffApplication의 DataRate 값을 5Mbps로 constant하게 고정한 후 normal 통신과 비교합니다.
 
 ![image](https://user-images.githubusercontent.com/58473522/171427002-0065b2df-b277-4362-bc69-832355d2430f.png)
+
+## License
+본 프로젝트는 GPLv2 라이선스 하에 공개되어 있습니다.<br/>
+라이선스 전문은 [LICENSE](https://github.com/nsnam/ns-3-dev-git/blob/master/LICENSE)에서 확인할 수 있습니다.
