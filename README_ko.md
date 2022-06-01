@@ -40,7 +40,15 @@ app.Stop (Seconds (10.));
 
 ### 서버
 
-> 내용 추가 필요
+VPN 서버는 VPN 클라이언트와 동일한 `VPNApplication`을 사용합니다.
+모든 `VPNApplication`이 설치된 Node는 `VirtualNetDevice`를 가지며, `VirtualNetDevice`의 IP주소는 `VPNHelper`의 `ClientAddress` attribute 값으로 설정됩니다. 수신한 패킷의 목적지 IP주소가 `VirtualNetDevice`의 IP주소와 다른 경우에는 [IP forwarding](#IP-forwarding)을 통해 목적지로 보내고, 동일한 경우에만 [`VirtualNetDevice::Receive ()`](#패킷-수신-콜백)를 통해 패킷을 수신합니다.
+
+VPN 서버 앱은 클라이언트 앱과 동일하게 `VPNHelper`를 사용하여 만들 수 있습니다. VPN 서버를 위한 `VPNHelper`의 생성자는 다음과 같습니다.
+
+```cpp
+VPNHelper::VPNHelper(Ipv4Address clientIp, uint16_t clientPort);
+VPNHelper::VPNHelper(Ipv4Address clientIp, uint16_t clientPort, std::string cipherKey);
+```
 
 #### 예시
 
@@ -200,6 +208,151 @@ VirtualNetDevice::Recv() 호출
 -----------
 ```
 
-### IP forwarding
+#### IP forwarding
 
-### VPN Header Encrypting/decrypting
+[패킷 수신 콜백](#패킷-수신-콜백)의 1번 과정에서 수신한 패킷의 목적지 Address가 `VirtualNetDevice`에 할당된 IP주소와 다르다면 해당 패킷은 해당 Node에 설치된 `VPNApplication`을 위한 패킷이 아님을 의미합니다. 이 경우 `VirtualNetDevice::Receive ()`함수를 호출하지 않고 `Packet::RemoveHeader ()`를 사용하여 IP header 및 TCP/UDP header를 제거한 뒤 `Socket::SendTo ()`함수를 호출하여 목적지 Address로 패킷을 forwarding합니다.
+
+```
+수신한 패킷
+----------------------------------------------------
+|           |     |------------Payload-------------|
+| public IP | UDP | private IP | TCP/UDP | Payload |
+|           |     |--------------------------------|
+----------------------------------------------------
+
+----------------------------------------
+|     |------------Payload-------------|
+| UDP | private IP | TCP/UDP | Payload |
+|     |--------------------------------|
+----------------------------------------
+
+Socket이 헤더를 제거
+-------------Payload--------------
+| private IP | TCP/UDP | Payload | <- packet given to receive callback
+----------------------------------
+
+IpHeader, TcpHeader/UdpHeader 제거
+Packet->RemoveHeader(IpHeader)
+Packet->RemoveHeader(TcpHeader/UdpHeader)
+-----------
+| Payload |
+-----------
+
+Socket::SendTo ()가 완료된 후
+|------------------------------------|
+| Destination IP | TCP/UDP | Payload |
+|------------------------------------|
+```
+
+### VPN Header Encryption/decryption
+
+#### VPNHeader 정의의 목적
+ VPN 상의 가입자 및 서버 간의 통신에 기 정의된 평문을 암호화 및 복호화를 수행하는 헤더를 사용하여 정보보호의 6가지 목표 중 하나인 기밀성을 보장하기 위함입니다.
+
+#### 사용한 암호 알고리즘 소개
+ 구현에 이용된 암호 알고리즘은 AES 알고리즘을 사용하였습니다. AES는, 
+ 
+ 1. 데이터 암호화 표준인 DES 보다 상대적으로 공격에 안정성을 갖고 있다고 알려져 있습니다.
+ 2. 암호화 및 복호화 대상인 평문은 128비트 단위의 크기를 가져야 하며, 암호화 키의 길이는 128, 192, 256 비트의 세 가지 종류가 있습니다.
+ 3. 공개키 암호방식에 비해 연산량이 가볍다는 점과 상대적으로 암복호화 과정이 단순하다는 장점이 있는 상용관용암호방식입니다.
+ 4. 평문과 키가 동일한 경우 같은 암호문을 출력할 수 있다는 문제점을 방지하기 위해 블록암호모드를 사용하며 ECB, CBC 모드 중 선택하여 사용할 수 있도록 반영되었습니다.
+ 5. Nr 라운드 수는 암호화 키의 길이에 따라 10, 12, 14로 정해지게 되고, 마지막 라운드에서 MixColumn은 생략한 형태를 띱니다.
+ 6. 아래 그림에 표현한 SubByte는 S-box를 의미하고, ShiftRows 단계에서 행들을 전치시키며 MixColumn은 열을 다항식의 형태로 표현한 후 특정 다항식을 곱하는 단계입니다.
+ 7. 복호화 때에는 곱해주었던 특정 다항식의 역다항식을 이용, 마찬가지로 역-SubByte, 역-ShitRows 과정을 수행합니다.
+ 
+ ```
+ |==========================|
+ |---- 평문 M(128 비트) ----|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |--------- Ex-OR ----------|  <- 0 라운드 키
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |-------- SubByte ---------|
+ |-------- ShiftRows--------|
+ |-------- MixColumn--------|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |--------- Ex-OR ----------|  <- 1 라운드 키
+ |--------------------------|
+ |-------    ...  ----------|
+ |-------    ...  ----------|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  <- .. 라운드
+ |-------    ...  ----------|
+ |-------    ...  ----------|
+ |-------- SubByte ---------|
+ |-------- ShiftRows--------|
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |--------- Ex-OR ----------|  <- Nr 라운드 키
+ |-------    ::    ---------|
+ |-------    VV    ---------|  
+ |-------- 암호문 C --------|
+ |==========================|
+ ```
+
+#### VPN 헤더에서의 암/복호화
+아래 핵심 두 메소드를 통해 수행합니다.
+```cpp
+std::string EncryptInput(const std::string &input, const std::string &cipherKey, bool verbose);
+std::string DecryptInput(const std::string &cipherKey, bool verbose);
+```
+각 메소드는 `vpn-aes.h`에 정의된 `AES` 클래스를 참조하여 암호화 알고리즘을 수행하게 됩니다. 
+
+##### 암/복호화 예시
+VPN 헤더를 사용하는 `VPNApplication` layer에서,
+
+송신자 측
+```cpp
+VpnHeader crypthdr;
+std::string plainText = "62531124552322311567ABD150BBFFCC";
+crypthdr.EncryptInput(plainText, m_cipherKey, false);
+```
+
+수신자 측
+```cpp
+VpnHeader crypthdr;
+packet->RemoveHeader(crypthdr);
+crypthdr.DecryptInput(m_cipherKey, false)
+```
+#### VPN 헤더의 핵심 멤버(함수 및 변수) 구조
+기본값으로 32바이트 길이의 평문을 사용한다고 가정하였고, 직/역직렬화 수행 간 바이트로 변환 및 추출할 `private` 변수들은 각각 `m_sentOrigin`, `m_encrypted` 이므로 `GetSerializedSize`는 지정한 평문의 32바이트 길이의 2배값이 됩니다. 
+
+|지정자|이름|설명|
+|:-:|-|-|
+|`public`|`EncryptInput`|평문의 암호화 함수|
+|`public`|`DecryptInput`|암호문의 복호화 함수|
+|`public`|`GetSerializedSize`|직/역직렬화 시 필요 공간 정의 함수|
+|`public`|`Serialize`|직렬화 수행 함수|
+|`public`|`Deserialize`|역직렬화 수행 함수|
+|`public`|`GetSendOrigin`|평문 반환 함수|
+|`public`|`GetEncrypted`|암호문 반환 함수|
+|`private`|`m_sentOrigin`|암호화 이전 평문 변수|
+|`private`|`m_encrypted`|암호문 변수|
+
+또한 직/역직렬화를 수행하는 `Serialize` 함수 및 `Deserialize` 함수 역시 평문의 길이를 조정하게 된다면 해당 길이에 맞춘 수정이 필요합니다.
+
+##### 예시
+16바이트 길이의 평문(128비트의 최소길이)로 수정하는 경우
+```cpp
+void VpnHeader::Serialize(Buffer::Iterator start) const
+  {
+    ...
+    for (int i = 0; i < 16; i++){ start.WriteU8(convert[i]); }  // 32 -> 16
+    ...
+  }
+uint32_t VpnHeader::GetSerializedSize(void) const
+  {
+    return 32;  // 32 -> 16
+  }
+
+  uint32_t VpnHeader::Deserialize(Buffer::Iterator start)
+  {
+    ...
+    for (int j = 0; j < 16; j++){ ss << i.ReadU8(); } // 32 -> 16
+    ...
+    
+    return 32;  // 64 -> 32
+  }
+```
