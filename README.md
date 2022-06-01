@@ -5,6 +5,12 @@
 This project aims to implement simple VPN communication in an ns-3 environment.<br/>
 In order to implement critical security and private network access through IP changes in VPNs, the focus is on implementing encryption and tunneling.
 
+### How to install
+Install using Docker
+```
+docker pull ghcr.io/cranemont/ns-3
+```
+
 ## How to use
 
 ### Client
