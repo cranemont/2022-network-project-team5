@@ -60,45 +60,6 @@ app.Start (Seconds (0.));
 app.Stop (Seconds (11.));
 ```
 
-## Tested topology
-
-```
-         P2P          P2P
-       10 Mbps      10 Mbps
-        10 us        10 us
-   n0 --------- n1 --------- n2
-(Onoff) ===== (Sink)              [Public]
-(Onoff) ================== (Sink) [Private]
-
--IP Address-
-n0: 10.1.1.1 /          / 11.0.0.2(V)
-n1: 10.1.1.2 / 10.2.1.1 /
-n2:          / 10.2.1.2 / 11.0.0.1(V)
-```
-
-```
-(OnOff)
-    n0
-      \ 10Mb/s, 10us
-       \
-        \          10Mb/s, 10us
-        n2 -------------------------n3
-        /                           | CSMA, 100Mb/s, 100ns
-       /                            |_______
-      / 10Mb/s, 10us                |   |   |
-    n1                             n4  n5  n6
-(OnOff)                          (sink)
-
--IP Address-
-n0: 10.1.1.1 /          /          / 11.0.0.100(V)
-n1:          / 10.1.2.1 /          / 11.0.0.101(V) /
-n2: 10.1.1.2 / 10.1.2.2 / 10.1.3.1
-n3:          /          / 10.1.3.2 / 12.0.0.1(V)   / 11.0.0.1
-n4:          /          /          /               / 11.0.0.2
-n5:          /          /          /               / 11.0.0.3
-n6:          /          /          /               / 11.0.0.4
-```
-
 ## How it works
 
 ### IP tunneling
@@ -335,3 +296,87 @@ uint32_t VpnHeader::GetSerializedSize(void) const
     return 32;  // 64 -> 32
   }
 ```
+
+## How to Test
+
+#### Sniffing Test
+```
+          point-to-point
+ (V)  10.1.1.0      10.1.2.0  (V)           (sink)
+  n0 ---------- n1 ---------- n2   n3   n4   n5
+(OnOff)      (sniffer)         |    |    |    |
+                               ================
+                                 LAN 11.0.0.0
+
+    n0 -> n2 -> n5 (Private, Encryption)
+       n1
+    (sniffer)
+
+-IP Address-
+n0: 10.1.1.1 /          / 11.0.0.100(V) /
+n1: 10.1.1.2 / 10.1.2.1 /               /
+n2:          / 10.1.2.2 / 12.0.0.1(V)   / 11.0.0.1
+n3:          /          /               / 11.0.0.2
+n4:          /          /               / 11.0.0.3
+n5:          /          /               / 11.0.0.4
+```
+Simulates a situation in which the intermediate node, n1, attempts to sniff when communicating from n0 to n5 over a VPN.<br/>
+On n1, use PromiscSniffer Trace source to sniff all packets passing by, and if the sniffing is successful, print out the address of the source and destination in debug mode.
+
+<img src="https://user-images.githubusercontent.com/58473522/171424934-2bdd6348-16ea-49d9-9061-b79bca7bf9f6.png" width="700"/>
+
+#### p2p link performance Test
+```
+(OnOff)
+    n0
+      \ 5Mbps, 10us
+       \
+        \          50Mbps, 10us
+        n2 -------------------------n3
+        /                           | CSMA, 100Mbps, 100ns
+       /                            |_______
+      / 5Mbps, 10us                 |   |   |
+    n1                             n4  n5  n6
+(OnOff)                          (sink)
+
+    n0 -> n3 -> n4 (Private, Encryption)
+    n1    ->    n4 (Public)
+
+-IP Address-
+n0: 10.1.1.1 /          /          / 11.0.0.100(V) /
+n1:          / 10.1.2.1 /          /               /
+n2: 10.1.1.2 / 10.1.2.2 / 10.1.3.1 /               /
+n3:          /          / 10.1.3.2 / 12.0.0.1(V)   / 11.0.0.1
+n4:          /          /          /               / 11.0.0.2
+n5:          /          /          /               / 11.0.0.3
+n6:          /          /          /               / 11.0.0.4
+```
+
+#### wifi performance Test
+```
+Wifi 10.1.2.0
+(V)       AP
+ *    *    *
+ |    |    |      10.1.1.0      (V)           (sink)
+n5   n6   n0 ------------------ n1   n2   n3   n4
+(OnOff)        point-to-point    |    |    |    |
+                10Mbps, 10us     ================
+                                   LAN 11.0.0.0
+                                  100Mbps, 100ns
+
+    n5 -> n1 -> n4 (Private, Encryption)
+    n6    ->    n4 (Public)
+
+-IP Address-
+n0: 10.1.1.1 / 10.1.2.3 /               /
+n1: 10.1.1.2 /          / 12.0.0.1(V)   / 11.0.0.1
+n2:          /          /               / 11.0.0.2
+n3:          /          /               / 11.0.0.3
+n4:          /          /               / 11.0.0.4
+n5:          / 10.1.2.1 / 11.0.0.100(V) /
+n6:          / 10.1.2.2 /               /
+```
+Measure VPN communication throughput in wifi communication situations.<br/>
+Constantly fix the DataRate value of OnOffApplication to 5Mbps and compare it with normal communication.
+
+![image](https://user-images.githubusercontent.com/58473522/171427002-0065b2df-b277-4362-bc69-832355d2430f.png)
