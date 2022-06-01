@@ -360,6 +360,19 @@ n4:          /          /          /               / 11.0.0.2
 n5:          /          /          /               / 11.0.0.3
 n6:          /          /          /               / 11.0.0.4
 ```
+Send packet from n0 to n4 node by VPN Application and n1 to n4 node by Normal packet flow. 
+In this example, we used Onoff Application and we tested topology by changing each sending packet sizes(1000byte, 10000byte, 50000byte). 
+Graphs below indicates that when packet sizes get smaller, amount of total size of packet n4 node receives gets bigger and vice versa. 
+Therefore, from this test we can infer that VPN needs more traffic than normal flow does which means that using VPN sending small packet can be efficient whereas sending big packet might have negative effect on throughput.
+
+![output_10](https://user-images.githubusercontent.com/36075767/171458565-99794ed9-dd8e-47b1-b81c-f1f0c04c631a.png)
+[ packet size = 1000bytes ]
+
+![output_100](https://user-images.githubusercontent.com/36075767/171458653-c86d7b12-b193-45c5-bff8-83b4601d700d.png)
+[ packet size = 10000bytes ]
+
+![output_500](https://user-images.githubusercontent.com/36075767/171458734-df93484c-340c-4d11-9c07-ebeebbda0164.png)
+[ packet size = 50000bytes ] 
 
 #### wifi performance Test
 ```
