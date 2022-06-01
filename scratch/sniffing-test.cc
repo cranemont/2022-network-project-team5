@@ -42,7 +42,6 @@ Sniffer (Ptr<const Packet> p)
     NS_LOG_DEBUG("\n>> SNIFFING START");
     VpnHeader vpnHeader;
     copy->RemoveHeader(vpnHeader);
-    NS_LOG_DEBUG("Sniffing : encrypted data -> " << vpnHeader.GetEncrypted());
     NS_LOG_DEBUG("Sniffing : decrypted data -> " << vpnHeader.DecryptInput("00000000000000000000000000000000", false));
 
     if (vpnHeader.DecryptInput("00000000000000000000000000000000", false) != vpnHeader.GetSentOrigin())
